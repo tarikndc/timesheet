@@ -1,0 +1,4 @@
+EmployeeID,EmployeeName,Email,SupervisorEmail,Active
+iDE0001,Example Staff One,staff.one@example.org,manager@example.org,TRUE
+iDE0002,Example Staff Two,staff.two@example.org,manager@example.org,TRUE
+iDE0003,Example Manager,manager@example.org,,TRUE

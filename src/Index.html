@@ -1,0 +1,1239 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --fg:#1f2937; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --bad:#b91c1c; --ok:#15803d; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, Arial, sans-serif; color: var(--fg); margin: 0 auto; padding: 16px; max-width: 1200px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  nav { display: flex; gap: 8px; border-bottom: 1px solid var(--line); margin-bottom: 16px; flex-wrap: wrap; }
+  nav button { background: none; border: none; padding: 8px 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel { display: none; } .panel.active { display: block; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  select, input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+  input.bad { border-color: var(--bad); background: #fee2e2; }
+  input:disabled { background: #f3f4f6; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tfoot th, tfoot td { border-top: 2px solid var(--line); color: var(--fg); font-weight: 700; }
+  .flag { color: var(--bad); font-weight: 600; }
+  .var { color: var(--ok); font-weight: 700; }
+  .okc { color: var(--ok); font-weight: 700; }
+  .badc { color: var(--bad); font-weight: 700; }
+  .lv { background: #fef3c7; font-weight: 700; }
+  .locked { background: #e5e7eb; }
+  .status { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; }
+  .status.Submitted { background: #fef3c7; color: #92400e; }
+  .status.Approved { background: #dcfce7; color: var(--ok); }
+  .status.Returned { background: #fee2e2; color: var(--bad); }
+  .msg { margin: 10px 0; font-size: 14px; }
+  .err { color: var(--bad); } .good { color: var(--ok); }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .appr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
+  .layout { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .side { width: 280px; flex-shrink: 0; }
+  .main { flex: 1; min-width: 300px; }
+  .emp-list { max-height: 460px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .emp { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 14px; }
+  .emp:hover { background: #f9fafb; }
+  .emp.sel { background: #dbeafe; }
+  .emp small { color: var(--muted); }
+  .monthbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .monthbar strong { font-size: 16px; min-width: 180px; text-align: center; }
+  .formula { font-size: 13px; color: var(--muted); background: #f9fafb; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; }
+  .scroll { overflow-x: auto; }
+  .lg-tbl th, .lg-tbl td { padding: 4px 6px; }
+  .lg-tbl input { width: 78px; text-align: right; }
+  .lg-tbl tr.wknd td { background: #eef2ff; }
+  .grid-tbl { table-layout: fixed; width: auto; border-collapse: collapse; }
+  .grid-tbl th, .grid-tbl td { white-space: normal; vertical-align: middle; padding: 6px; }
+  .grid-tbl th.mc, .grid-tbl td.mc { width: 120px; text-align: left; }
+  .grid-tbl th.pc, .grid-tbl td.pc { width: 150px; text-align: right; }
+  .grid-tbl th.tc, .grid-tbl td.tc { width: 110px; text-align: right; }
+  .grid-tbl td.pc input { width: 100%; box-sizing: border-box; text-align: right; }
+  .grid-tbl th { text-transform: none; font-size: 13px; }
+  .pname { line-height: 1.3; }
+  .prefrow { display: block; margin: 6px 0; font-size: 14px; }
+  .prefrow.master { padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .footer { margin-top: 24px; font-size: 12px; color: var(--muted); text-align: center; }
+  a { color: var(--accent); }
+  #rp-table td, #rp-table th { white-space: normal; vertical-align: top; }
+  #rp-table tr.grp td { background: #f3f4f6; font-weight: 700; color: var(--fg); }
+  #emp-sample { width: 100%; height: 100px; font-family: monospace; font-size: 12px; margin-top: 8px; }
+
+  button { font-size: 14px; cursor: pointer; transition: transform .12s ease, box-shadow .15s ease, background-color .15s ease, opacity .15s ease; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #fff; border: none; padding: 7px 14px; border-radius: 6px; }
+  button.ghost { background: #fff; color: var(--fg); border: 1px solid #d1d5db; padding: 6px 12px; border-radius: 6px; }
+  button.x { background: none; border: none; color: var(--bad); font-size: 14px; padding: 0 2px; }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+  button:active:not(:disabled) { transform: scale(.96); box-shadow: inset 0 2px 4px rgba(0,0,0,.2); }
+  button.primary:hover:not(:disabled) { background: #1d4ed8; }
+  button.ghost:hover:not(:disabled) { background: #f3f4f6; border-color: #9ca3af; }
+  button.x:hover:not(:disabled) { opacity: .7; box-shadow: none; }
+  button.busy { position: relative; color: transparent !important; pointer-events: none; }
+  button.busy::after { content: ''; position: absolute; width: 14px; height: 14px; top: 50%; left: 50%; margin: -7px 0 0 -7px;
+    border: 2px solid #fff; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+  button.ghost.busy::after { border-color: #374151; border-right-color: transparent; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #popup-box { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 9999; }
+  #popup-card { background: #fff; border-radius: 10px; padding: 20px 24px; max-width: 380px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  #popup-title { font-size: 16px; font-weight: 700; color: var(--bad); margin-bottom: 8px; }
+  #popup-text { font-size: 14px; line-height: 1.5; color: var(--fg); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<h1>Timesheet</h1>
+<div class="sub" id="who">Loading...</div>
+<nav id="nav"></nav>
+
+<div id="popup-box">
+  <div id="popup-card">
+    <div id="popup-title">Not allowed</div>
+    <div id="popup-text"></div>
+    <div style="text-align:right;"><button class="primary" id="popup-ok">OK</button></div>
+  </div>
+</div>
+
+<!-- ===== MY MONTH ===== -->
+<section class="panel" id="p-me">
+  <div class="monthbar">
+    <button class="ghost" onclick="shiftMonth(-1)">â€¹ Previous</button>
+    <strong id="me-label"></strong>
+    <button class="ghost" onclick="shiftMonth(1)">Next â€º</button>
+  </div>
+
+  <div class="appr" id="appr-bar"></div>
+  <div id="appr-msg" class="msg"></div>
+
+  <div id="me-summary" class="sub"></div>
+  <div class="formula">Adjusted hours = Allocated âˆ’ Leave share. Actual = how far your logged hours are from the adjusted hours, shown without direction. Rows marked REVIEW are more than Â±2 h off.</div>
+  <div class="scroll"><table id="me-table"></table></div>
+
+  <div class="card" style="margin-top:16px">
+    <strong>1. Leave Â· <span id="lv-label"></span></strong>
+    <div class="sub">Pick a date or a date range, the leave type, and full day or half day. Friday and Saturday are skipped. Public and government holidays appear here automatically.</div>
+    <div class="row" style="margin-top:8px">
+      <label>From <input type="date" id="lv-from"></label>
+      <label>To <input type="date" id="lv-to"></label>
+      <select id="lv-type"></select>
+      <select id="lv-dur">
+        <option value="8">Full day (8 h)</option>
+        <option value="4">Half day (4 h)</option>
+      </select>
+      <button class="primary" id="lv-add" onclick="addLeaveEntry()">Add leave</button>
+    </div>
+    <div id="lv-note" class="sub"></div>
+    <div id="lv-msg" class="msg"></div>
+    <div class="scroll"><table id="lv-table"></table></div>
+    <div id="lv-total" class="sub" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <strong>2. Daily actual hours Â· <span id="ac-label"></span></strong>
+    <div class="sub">Enter the hours you worked on each project each day. Grey cells are locked: weekends and full-day leave or holidays. A half-day leave leaves 4 h open on that day. Each project's Entered total must equal its Target, and the month total must match the total target.</div>
+    <div class="scroll"><table id="ac-table" class="lg-tbl"></table></div>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="ac-save" onclick="saveActualGrid()">Save actual hours</button>
+    </div>
+    <div id="ac-msg" class="msg"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <strong>3. Email notifications</strong>
+    <div class="sub">Choose which emails you receive. The master switch turns all emails on or off.</div>
+    <div id="pref-box"></div>
+    <div class="row" style="margin-top:8px"><button class="primary" onclick="savePrefs()">Save preferences</button></div>
+    <div id="pref-msg" class="msg"></div>
+  </div>
+</section>
+
+<!-- ===== TEAM / APPROVALS ===== -->
+<section class="panel" id="p-team">
+  <div class="row">
+    <select id="team-month"></select>
+    <input id="team-year" type="number" min="2020" max="2040" style="width:90px">
+    <button class="primary" onclick="loadTeam()">Load team</button>
+  </div>
+  <div class="scroll"><table id="team-table"></table></div>
+
+  <div id="review" class="card" style="display:none; margin-top:12px">
+    <div class="row"><strong id="review-title"></strong></div>
+    <div id="review-status" class="msg"></div>
+    <div class="scroll"><table id="review-table"></table></div>
+    <div class="row" style="margin-top:10px">
+      <input id="review-comment" placeholder="Comment (optional)" style="flex:1">
+      <button class="primary" id="review-approve" onclick="decide('approve')">Approve</button>
+      <button class="ghost" id="review-return" onclick="decide('return')">Return for correction</button>
+    </div>
+    <div class="row">
+      <button class="ghost" onclick="openReportLink(this, reviewEmp, reviewMonth, reviewYear, 'review-msg')">Print / Download PDF</button>
+    </div>
+    <div id="review-msg" class="msg"></div>
+  </div>
+</section>
+
+<!-- ===== ADMIN ===== -->
+<section class="panel" id="p-admin">
+  <div class="layout">
+    <div class="side">
+      <div class="row"><input id="emp-search" placeholder="Search name, ID or email" style="width:100%"></div>
+      <div class="emp-list" id="emp-list"></div>
+    </div>
+    <div class="main">
+
+      <div class="card">
+        <strong>Report archive</strong>
+        <div class="sub">All submitted and approved timesheets. Approved PDFs are stored in your Google Drive by year and month.
+          <a href="https://drive.google.com/drive/folders/REPLACE_WITH_REPORT_FOLDER_ID" target="_blank" rel="noopener">Open the archive folder in Google Drive</a>
+        </div>
+        <div class="row">
+          <select id="rp-year"></select>
+          <select id="rp-month"></select>
+          <input id="rp-q" placeholder="Staff name or ID" style="width:200px">
+          <button class="primary" onclick="searchReports()">Search</button>
+          <button class="ghost" onclick="rebuildArchive()">Rebuild archive</button>
+        </div>
+        <div id="rp-msg" class="msg"></div>
+        <div class="scroll"><table id="rp-table"></table></div>
+      </div>
+
+      <div class="card">
+        <div id="grid-empty" class="sub">Select an employee on the left to enter their allocation.</div>
+        <div id="grid-area" style="display:none">
+          <div class="row">
+            <strong id="grid-title"></strong>
+            <select id="grid-year"></select>
+            <button class="ghost" onclick="loadGrid()">Load year</button>
+          </div>
+          <div class="row">
+            <select id="add-project"></select>
+            <button class="ghost" onclick="addColumn()">+ Add project</button>
+          </div>
+          <div class="scroll"><table id="grid" class="grid-tbl"></table></div>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" onclick="saveGrid()">Save allocation</button>
+          </div>
+          <div id="grid-msg" class="msg"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Public and government holidays</strong>
+        <div class="sub">Each holiday counts as 8 h of leave for every employee, and project hours are locked on that date. Friday and Saturday are already weekends, so do not add them.</div>
+        <div class="row">
+          <select id="hol-year" onchange="loadHolidays()"></select>
+        </div>
+        <div class="scroll"><table id="hol-table"></table></div>
+        <div class="row" style="margin-top:10px">
+          <input type="date" id="hol-date">
+          <input type="text" id="hol-name" placeholder="Holiday name" style="width:200px">
+          <select id="hol-type"><option>Public</option><option>Government</option></select>
+          <input type="number" id="hol-hours" value="8" min="0.25" max="8" step="0.25" style="width:80px">
+          <button class="primary" onclick="addHolidayEntry()">Add holiday</button>
+        </div>
+        <div id="hol-msg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <strong>Admins</strong>
+        <div class="sub">Admins can manage employees, allocations, holidays, approvals, reports and exports.</div>
+        <div class="row">
+          <input type="email" id="adm-email" placeholder="name@ideglobal.org" style="width:280px">
+          <button class="primary" onclick="addAdminEntry()">Add admin</button>
+        </div>
+        <div id="adm-list"></div>
+        <div id="adm-msg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <strong>Bulk employee upload</strong>
+        <div class="sub">Upload many staff at once. Download the sample, fill it in Excel or Google Sheets, save it as CSV, then upload. Existing EmployeeIDs are updated; new ones are added. If any row has a problem, nothing is saved and the errors are listed.</div>
+        <div class="row">
+          <button class="ghost" onclick="downloadEmployeeSample()">Download sample CSV</button>
+        </div>
+        <div id="emp-sample-box"></div>
+        <div class="row" style="margin-top:10px">
+          <input type="file" id="emp-csv" accept=".csv">
+          <button class="primary" onclick="uploadEmployeeCsv()">Upload employees CSV</button>
+        </div>
+        <div id="emp-csv-msg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <strong>Bulk allocation upload (CSV)</strong>
+        <div class="sub">Columns: EmployeeID or Email, Month, Year, ProjectName, AllocatedHours</div>
+        <input type="file" id="csv" accept=".csv">
+        <button class="ghost" onclick="uploadCsv()">Upload</button>
+        <div id="csv-msg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <strong>Operations</strong>
+        <div class="row" style="margin-top:8px">
+          <select id="ex-month"></select>
+          <input id="ex-year" type="number" style="width:90px">
+          <button class="primary" onclick="runExport()">Export approved</button>
+        </div>
+        <div id="ops-msg" class="msg"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  <img id="sig-img" alt="Tarik signature" style="height:40px;display:none;margin-bottom:4px"><br>
+  Developed by Tarik
+</div>
+
+<script>
+// ===== GLOBAL STATE AND HELPERS =====
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const NOW = new Date();
+const LEAVE_TYPE_FALLBACK = ['Annual', 'Sick', 'Casual', 'Other'];
+const ACT_MAX = 8;
+const ACT_TOL = 0.005;
+
+let ME = null;
+let emps = [], allProjects = [];
+let selEmp = null, gridCols = [], gridData = {};
+let myIdx = NOW.getMonth(), myYear = NOW.getFullYear();
+let acProjects = [], acDays = [], acLeaveTypes = [], acTargets = {}, acTotalTarget = 0;
+let acLocked = false;
+let myStatus = { status: 'Not submitted' };
+let reviewEmp = null, reviewName = '', reviewMonth = null, reviewYear = null;
+
+function num(n, d = 2) { return (Math.round(Number(n) * 10 ** d) / 10 ** d).toFixed(d); }
+function round2(n) { return Math.round(Number(n) * 100) / 100; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fill(sel, items) { sel.innerHTML = items.map(i => `<option value="${esc(i.v)}">${esc(i.t)}</option>`).join(''); }
+function monthOpts() { return MONTHS.map(m => ({ v: m, t: m })); }
+function yearOpts() { const y = NOW.getFullYear(); const a = []; for (let i = y - 2; i <= y + 2; i++) a.push({ v: i, t: i }); return a; }
+function errTo(id) { return e => { document.getElementById(id).innerHTML = `<span class="err">${esc(e.message)}</span>`; }; }
+function monthPrefix() { return `${myYear}-${pad(myIdx + 1)}`; }
+function statusClass(s) { return ['Submitted', 'Approved', 'Returned'].indexOf(s) >= 0 ? s : ''; }
+function setBusy(btn, on) { if (!btn) return; btn.classList.toggle('busy', on); btn.disabled = on; }
+
+function showPopup(title, message) {
+  document.getElementById('popup-title').textContent = title;
+  document.getElementById('popup-text').textContent = message;
+  document.getElementById('popup-box').style.display = 'flex';
+}
+
+function loadSignature() {
+  google.script.run.withSuccessHandler(src => {
+    if (!src) return;
+    const img = document.getElementById('sig-img');
+    img.src = src;
+    img.style.display = 'inline-block';
+  }).getFooterSignature();
+}
+// ===== INIT =====
+function init() {
+  fill(document.getElementById('team-month'), monthOpts());
+  document.getElementById('team-month').value = MONTHS[NOW.getMonth()];
+  document.getElementById('team-year').value = NOW.getFullYear();
+  fill(document.getElementById('ex-month'), monthOpts());
+  document.getElementById('ex-month').value = MONTHS[NOW.getMonth()];
+  document.getElementById('ex-year').value = NOW.getFullYear();
+  fill(document.getElementById('grid-year'), yearOpts());
+  document.getElementById('grid-year').value = NOW.getFullYear();
+  fill(document.getElementById('hol-year'), yearOpts());
+  document.getElementById('hol-year').value = NOW.getFullYear();
+  fill(document.getElementById('lv-type'), LEAVE_TYPE_FALLBACK.map(t => ({ v: t, t: t })));
+  fill(document.getElementById('rp-year'), [{ v: '', t: 'All years' }].concat(yearOpts()));
+  fill(document.getElementById('rp-month'), [{ v: '', t: 'All months' }].concat(monthOpts()));
+
+  document.getElementById('popup-ok').addEventListener('click', () => {
+    document.getElementById('popup-box').style.display = 'none';
+  });
+  document.getElementById('emp-search').addEventListener('input', renderEmpList);
+  document.getElementById('emp-list').addEventListener('click', e => {
+    const row = e.target.closest('[data-id]');
+    if (row) pickEmp(row.dataset.id);
+  });
+  document.getElementById('grid').addEventListener('input', recalc);
+  document.getElementById('grid').addEventListener('click', e => {
+    const b = e.target.closest('[data-rm]');
+    if (b) removeColumn(Number(b.dataset.rm));
+  });
+  document.getElementById('ac-table').addEventListener('input', onActualInput);
+
+  google.script.run.withSuccessHandler(me => {
+    ME = me;
+    document.getElementById('who').textContent = `${me.name} Â· ${me.email} Â· ${me.role}`;
+    buildNav();
+    if (me.employeeId) { loadMe(); loadPrefs(); }
+    if (me.role !== 'staff') loadTeam();
+    if (me.role === 'admin') loadAdmin();
+  }).withFailureHandler(e => {
+    document.getElementById('who').innerHTML = `<span class="err">${esc(e.message)}</span>`;
+  }).getMe();
+}
+
+function buildNav() {
+  const tabs = [];
+  if (ME.employeeId) tabs.push(['me', 'My month']);
+  if (ME.role !== 'staff') tabs.push(['team', ME.role === 'admin' ? 'All approvals' : 'My team']);
+  if (ME.role === 'admin') tabs.push(['admin', 'Admin']);
+  document.getElementById('nav').innerHTML = tabs.map((t, i) =>
+    `<button data-p="${t[0]}" class="${i === 0 ? 'active' : ''}" onclick="show('${t[0]}')">${t[1]}</button>`).join('');
+  if (tabs.length) show(tabs[0][0]);
+}
+
+function show(p) {
+  document.querySelectorAll('.panel').forEach(x => x.classList.toggle('active', x.id === 'p-' + p));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+}
+
+// ===== PDF LINKS (open in a new tab) =====
+function linkHtml_(r) {
+  return `<a href="${esc(r.url)}" target="_blank" rel="noopener">Open PDF</a> Â· ` +
+         `<a href="${esc(r.dl)}" target="_blank" rel="noopener">Download</a>`;
+}
+
+function openReportLink(btn, empId, month, year, elId) {
+  const box = document.getElementById(elId);
+  setBusy(btn, true);
+  box.innerHTML = '<span class="sub">Preparing PDF...</span>';
+  google.script.run.withSuccessHandler(r => {
+    setBusy(btn, false);
+    const tag = r.status === 'Approved' ? 'Approved timesheet' : 'Draft for manual signature';
+    box.innerHTML = `<div class="good">${esc(tag)} ready: ${linkHtml_(r)}. ` +
+      `Use the print icon in the PDF viewer to print.</div>`;
+  }).withFailureHandler(e => {
+    setBusy(btn, false);
+    box.innerHTML = `<span class="err">${esc(e.message)}</span>`;
+  }).getReportLink(empId, month, Number(year));
+}
+
+// ===== REVIEWER TABLE =====
+function reportHtml(rows, totalAllocated) {
+  if (!rows.length) return '<tbody><tr><td>No allocation set for this month.</td></tr></tbody>';
+  const t = { allocated: 0, leaveShare: 0, adjusted: 0, actual: 0, diff: 0 };
+  const body = rows.map(r => {
+    t.allocated += r.allocated; t.leaveShare += r.leaveShare; t.adjusted += r.adjusted;
+    t.actual += r.actual; t.diff += Math.abs(r.variance);
+    const share = totalAllocated ? (r.allocated / totalAllocated) * 100 : 0;
+    return `<tr><td>${esc(r.project)}</td><td class="num">${num(r.allocated)}</td>
+      <td class="num">${num(share, 1)}%</td>
+      <td class="num">${num(r.leaveShare)}</td><td class="num">${num(r.adjusted)}</td>
+      <td class="num">${num(r.actual)}</td><td class="num">${num(Math.abs(r.variance))}</td>
+      <td>${r.flag ? '<span class="flag">REVIEW</span>' : ''}</td></tr>`;
+  }).join('');
+  return `<thead><tr><th>Project</th><th class="num">Allocated</th><th class="num">Share</th>
+    <th class="num">Leave share</th><th class="num">Adjusted</th><th class="num">Logged</th>
+    <th class="num">Actual</th><th>Flag</th></tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><th>Total</th><td class="num">${num(t.allocated)}</td><td class="num">100.0%</td>
+    <td class="num">${num(t.leaveShare)}</td><td class="num">${num(t.adjusted)}</td>
+    <td class="num">${num(t.actual)}</td><td class="num">${num(t.diff)}</td><td></td></tr></tfoot>`;
+}
+
+// ===== MY MONTH =====
+function shiftMonth(d) {
+  myIdx += d;
+  if (myIdx < 0) { myIdx = 11; myYear--; }
+  if (myIdx > 11) { myIdx = 0; myYear++; }
+  loadMe();
+}
+
+function loadMe() {
+  const want = monthPrefix();
+  const label = `${MONTHS[myIdx]} ${myYear}`;
+  document.getElementById('me-label').textContent = label;
+  document.getElementById('lv-label').textContent = label;
+  document.getElementById('me-summary').textContent = 'Loading...';
+  document.getElementById('appr-msg').textContent = '';
+  loadMyStatus();
+  loadLeave();
+  loadActualGrid();
+  google.script.run.withSuccessHandler(r => {
+    if (monthPrefix() !== want) return;
+    document.getElementById('me-summary').textContent =
+      `Allocated ${num(r.totalAllocated)} h Â· Leave ${num(r.totalLeave)} h Â· ${r.flaggedCount} need review (tolerance Â±${r.tolerance} h)`;
+    document.getElementById('me-table').innerHTML = reportHtmlMe(r.rows, r.totalAllocated);
+  }).withFailureHandler(errTo('me-summary'))
+    .getMyReport(MONTHS[myIdx], myYear);
+}
+
+function reportHtmlMe(rows, totalAllocated) {
+  if (!rows.length) return '<tbody><tr><td>No allocation set for this month.</td></tr></tbody>';
+  const t = { allocated: 0, leaveShare: 0, adjusted: 0, diff: 0 };
+  const body = rows.map(r => {
+    t.allocated += r.allocated; t.leaveShare += r.leaveShare;
+    t.adjusted += r.adjusted; t.diff += Math.abs(r.variance);
+    const share = totalAllocated ? (r.allocated / totalAllocated) * 100 : 0;
+    return `<tr><td>${esc(r.project)}</td><td class="num">${num(r.allocated)}</td>
+      <td class="num">${num(share, 1)}%</td>
+      <td class="num">${num(r.leaveShare)}</td><td class="num">${num(r.adjusted)}</td>
+      <td class="num var">${num(Math.abs(r.variance))}</td>
+      <td>${r.flag ? '<span class="flag">REVIEW</span>' : ''}</td></tr>`;
+  }).join('');
+  return `<thead><tr><th>Project</th><th class="num">Allocated</th><th class="num">Share</th>
+    <th class="num">Leave share</th><th class="num">Adjusted</th>
+    <th class="num">Actual</th><th>Flag</th></tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><th>Total</th><td class="num">${num(t.allocated)}</td><td class="num">100.0%</td>
+    <td class="num">${num(t.leaveShare)}</td><td class="num">${num(t.adjusted)}</td>
+    <td class="num var">${num(t.diff)}</td><td></td></tr></tfoot>`;
+}
+
+// ===== APPROVAL BAR =====
+function loadMyStatus() {
+  google.script.run.withSuccessHandler(s => {
+    myStatus = s;
+    renderApprovalBar();
+  }).withFailureHandler(errTo('appr-msg'))
+    .getMyMonthStatus(MONTHS[myIdx], myYear);
+}
+
+function renderApprovalBar() {
+  const s = myStatus.status;
+  const labels = {
+    'Not submitted': 'Not submitted',
+    'Submitted': 'Submitted, waiting for manager',
+    'Approved': 'Approved',
+    'Returned': 'Returned for correction'
+  };
+  let h = `<span class="status ${statusClass(s)}">${esc(labels[s] || s)}</span>`;
+  if (s === 'Submitted') h += ` <span class="sub">Submitted ${esc(myStatus.submittedAt)}. Editing is locked until the manager returns it.</span>`;
+  if (s === 'Approved') h += ` <span class="sub">by ${esc(myStatus.by)} Â· ${esc(myStatus.at)}</span>`;
+  if (s === 'Returned' && myStatus.comment) h += ` <span class="sub">Manager comment: ${esc(myStatus.comment)}</span>`;
+  if (s === 'Not submitted' || s === 'Returned') {
+    h += ` <button class="primary" onclick="submitMonth()">Submit for approval</button>`;
+  }
+  h += ` <button class="ghost" onclick="openReportLink(this, ME.employeeId, MONTHS[myIdx], myYear, 'appr-msg')">Print / Download PDF</button>`;
+  document.getElementById('appr-bar').innerHTML = h;
+  setLocked(s === 'Submitted' || s === 'Approved');
+}
+
+function setLocked(locked) {
+  acLocked = locked;
+  document.querySelectorAll('#ac-table input[data-d]').forEach(i => { i.disabled = locked; });
+  document.getElementById('ac-save').disabled = locked;
+  document.getElementById('lv-add').disabled = locked;
+  document.getElementById('lv-note').textContent =
+    locked ? 'Leave and hours are locked while this month is submitted or approved.' : '';
+}
+
+function submitMonth() {
+  if (!confirm(`Submit ${MONTHS[myIdx]} ${myYear} for manager approval? Editing is locked until the manager returns it.`)) return;
+  google.script.run.withSuccessHandler(() => {
+    loadMe();
+    showPopup('Submitted', 'Your timesheet was sent to your manager for approval.');
+  }).withFailureHandler(e => showPopup('Cannot submit', e.message))
+    .submitTimesheet(MONTHS[myIdx], myYear);
+}
+
+// ===== EMAIL PREFERENCES =====
+function loadPrefs() {
+  google.script.run.withSuccessHandler(r => {
+    const p = r.prefs, L = r.labels;
+    const chk = (id, on, text) =>
+      `<label class="prefrow"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}> ${esc(text)}</label>`;
+    document.getElementById('pref-box').innerHTML =
+      `<label class="prefrow master"><input type="checkbox" id="pref-Master" ${p.Master ? 'checked' : ''} onchange="updatePrefState()"> ` +
+      `<b>Email notifications</b> <span id="pref-state" class="${p.Master ? 'okc' : 'badc'}">${p.Master ? 'ON' : 'OFF'}</span></label>` +
+      chk('pref-Decision', p.Decision, L.Decision) +
+      chk('pref-Holiday', p.Holiday, L.Holiday) +
+      (r.isManager ? chk('pref-Submitted', p.Submitted, L.Submitted) + chk('pref-Leave', p.Leave, L.Leave) : '');
+  }).withFailureHandler(errTo('pref-msg')).getMyPrefs();
+}
+
+function updatePrefState() {
+  const on = document.getElementById('pref-Master').checked;
+  const el = document.getElementById('pref-state');
+  el.textContent = on ? 'ON' : 'OFF';
+  el.className = on ? 'okc' : 'badc';
+}
+
+function savePrefs() {
+  const get = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const prefs = {
+    Master: get('pref-Master'),
+    Decision: get('pref-Decision'),
+    Holiday: get('pref-Holiday'),
+    Submitted: get('pref-Submitted'),
+    Leave: get('pref-Leave')
+  };
+  google.script.run.withSuccessHandler(() => {
+    document.getElementById('pref-msg').innerHTML =
+      `<span class="good">Saved. Email notifications are ${prefs.Master ? 'ON' : 'OFF'}.</span>`;
+  }).withFailureHandler(errTo('pref-msg')).saveMyPrefs(prefs);
+}
+
+// ===== LEAVE =====
+function loadLeave() {
+  document.getElementById('lv-msg').textContent = '';
+  document.getElementById('lv-from').value = `${monthPrefix()}-01`;
+  document.getElementById('lv-to').value = `${monthPrefix()}-01`;
+  google.script.run.withSuccessHandler(list => {
+    const total = list.reduce((s, l) => s + l.hours, 0);
+    document.getElementById('lv-total').textContent = `Total leave this month: ${num(total)} h`;
+    document.getElementById('lv-table').innerHTML = list.length
+      ? '<thead><tr><th>Date</th><th>Leave type</th><th class="num">Hours</th><th>Note</th><th></th></tr></thead><tbody>' +
+        list.map(l => `<tr>
+          <td>${esc(l.date)}</td>
+          <td><b>${esc(l.type)}</b></td>
+          <td class="num"><b>${num(l.hours, 0)}</b></td>
+          <td>${esc(l.status)}</td>
+          <td>${l.editable ? `<button class="x" data-del="${esc(l.id)}">Delete</button>` : ''}</td>
+        </tr>`).join('') + '</tbody>'
+      : '<tbody><tr><td>No leave or holidays recorded for this month.</td></tr></tbody>';
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteLeaveEntry(b.dataset.del));
+  }).withFailureHandler(errTo('lv-msg')).getMyLeave(MONTHS[myIdx], myYear);
+}
+
+function addLeaveEntry() {
+  const from = document.getElementById('lv-from').value;
+  const to = document.getElementById('lv-to').value;
+  const type = document.getElementById('lv-type').value;
+  const hours = Number(document.getElementById('lv-dur').value);
+  const msg = document.getElementById('lv-msg');
+  if (!from || !to) { msg.innerHTML = '<span class="err">Pick a from and to date.</span>'; return; }
+  if (from.slice(0, 7) !== monthPrefix() || to.slice(0, 7) !== monthPrefix()) {
+    msg.innerHTML = '<span class="err">Pick dates in the month shown above.</span>'; return;
+  }
+  if (to < from) { msg.innerHTML = '<span class="err">The "to" date is before the "from" date.</span>'; return; }
+  msg.textContent = 'Saving...';
+  google.script.run.withSuccessHandler(r => {
+    msg.innerHTML = `<span class="good">Added ${r.added} day(s) of ${esc(type)}. ${r.skipped} Friday/Saturday day(s) skipped.</span>`;
+    loadMe();
+  }).withFailureHandler(e => {
+    msg.innerHTML = '';
+    showPopup('Leave not saved', e.message);
+  }).addLeaveRange(from, to, type, hours);
+}
+
+function deleteLeaveEntry(id) {
+  if (!confirm('Delete this leave entry?')) return;
+  google.script.run.withSuccessHandler(() => loadMe())
+    .withFailureHandler(e => showPopup('Could not delete', e.message))
+    .deleteLeave(id);
+}
+
+// ===== DAILY ACTUAL HOURS =====
+function loadActualGrid() {
+  document.getElementById('ac-label').textContent = `${MONTHS[myIdx]} ${myYear}`;
+  document.getElementById('ac-msg').textContent = '';
+  document.getElementById('ac-table').innerHTML = '<tbody><tr><td>Loading daily grid...</td></tr></tbody>';
+  google.script.run.withSuccessHandler(r => {
+    acProjects = r.projects;
+    acLeaveTypes = r.leaveTypes;
+    acDays = r.days;
+    acTargets = r.targets;
+    acTotalTarget = r.totalTarget;
+    renderActualGrid();
+  }).withFailureHandler(e => {
+    document.getElementById('ac-table').innerHTML =
+      '<tbody><tr><td class="err">Daily grid error: ' + esc(e.message) + '</td></tr></tbody>';
+  }).getActualGrid(MONTHS[myIdx], myYear);
+}
+
+function renderActualGrid() {
+  const t = document.getElementById('ac-table');
+  if (!acProjects.length) {
+    t.innerHTML = '<tbody><tr><td>No projects allocated for this month yet. Ask your admin to set the allocation.</td></tr></tbody>';
+    return;
+  }
+
+  const head = '<thead><tr><th>Day</th><th>Weekday</th>' +
+    acProjects.map(p => `<th class="num">${esc(p)}</th>`).join('') +
+    acLeaveTypes.map(l => `<th class="num">${l === 'Holiday' ? 'Holiday' : esc(l) + ' leave'}</th>`).join('') +
+    '<th class="num">Work total</th></tr></thead>';
+
+  const body = '<tbody>' + acDays.map((d, i) => {
+    const projectCells = acProjects.map(p => {
+      if (d.weekend) return '<td class="num locked" title="Weekend: no hours allowed"></td>';
+      if (d.cap <= 0) return '<td class="num locked" title="Full day on leave or holiday"></td>';
+      const v = d.hours[p] != null ? d.hours[p] : '';
+      return `<td class="num"><input type="number" min="0" max="${d.cap}" step="0.01" ${acLocked ? 'disabled' : ''} data-d="${i}" data-p="${esc(p)}" value="${v}"></td>`;
+    }).join('');
+    const leaveCells = acLeaveTypes.map(l => {
+      const has = d.leave[l] != null && d.leave[l] > 0;
+      return `<td class="num ${has ? 'lv' : ''}">${has ? num(d.leave[l]) : ''}</td>`;
+    }).join('');
+    const capNote = (!d.weekend && d.cap > 0 && d.cap < ACT_MAX)
+      ? ` <small>(max ${num(d.cap)} h)</small>` : '';
+    return `<tr class="${d.weekend ? 'wknd' : ''}"><td>${d.day}</td><td>${d.weekday}${capNote}</td>` +
+      projectCells + leaveCells +
+      `<td class="num" data-acday="${i}">0.00</td></tr>`;
+  }).join('') + '</tbody>';
+
+  const blankLeave = acLeaveTypes.map(() => '<td></td>').join('');
+
+  const foot = '<tfoot>' +
+    '<tr><th colspan="2">Target (adjusted)</th>' +
+      acProjects.map(p => `<td class="num">${num(acTargets[p] || 0)}</td>`).join('') +
+      blankLeave +
+      `<td class="num">${num(acTotalTarget)}</td></tr>` +
+    '<tr><th colspan="2">Entered</th>' +
+      acProjects.map((p, j) => `<td class="num" data-ent="${j}">0.00</td>`).join('') +
+      blankLeave +
+      '<td class="num" id="ac-grand">0.00</td></tr>' +
+    '<tr><th colspan="2">Difference</th>' +
+      acProjects.map((p, j) => `<td class="num" data-dif="${j}">0.00</td>`).join('') +
+      blankLeave +
+      '<td class="num" id="ac-diff">0.00</td></tr>' +
+    '</tfoot>';
+
+  t.innerHTML = head + body + foot;
+  recalcActual();
+  setLocked(acLocked);
+}
+
+function onActualInput(e) {
+  const input = e.target;
+  if (!input.dataset || input.dataset.d === undefined) return;
+
+  const dayIdx = input.dataset.d;
+  const d = acDays[dayIdx];
+  const cap = d.cap;
+  const entered = Number(input.value) || 0;
+  let others = 0;
+  document.querySelectorAll(`#ac-table input[data-d="${dayIdx}"]`).forEach(i => {
+    if (i !== input) others += Number(i.value) || 0;
+  });
+
+  const dayTotal = round2(entered + others);
+  if (dayTotal > cap + ACT_TOL) {
+    const allowed = Math.max(0, round2(cap - others));
+    const reduced = cap < ACT_MAX ? ` (8 h minus ${num(ACT_MAX - cap)} h leave or holiday)` : '';
+    showPopup('Daily limit reached',
+      `${d.weekday} ${d.day} ${MONTHS[myIdx]}: the limit for this day is ${num(cap)} h${reduced}. ` +
+      `This entry was set to ${num(allowed)} h.`);
+    input.value = allowed === 0 ? '' : allowed;
+  }
+  recalcActual();
+}
+
+function recalcActual() {
+  const dayT = {}, colT = {};
+  let grand = 0;
+
+  document.querySelectorAll('#ac-table input[data-d]').forEach(i => {
+    const v = Number(i.value) || 0;
+    const d = acDays[i.dataset.d];
+    i.classList.toggle('bad', v > d.cap + ACT_TOL);
+    dayT[i.dataset.d] = round2((dayT[i.dataset.d] || 0) + v);
+    colT[i.dataset.p] = round2((colT[i.dataset.p] || 0) + v);
+    grand = round2(grand + v);
+  });
+
+  acDays.forEach((d, i) => {
+    const el = document.querySelector(`[data-acday="${i}"]`);
+    if (el) el.textContent = num(dayT[i] || 0);
+  });
+
+  const mismatches = [];
+  acProjects.forEach((p, j) => {
+    const entered = round2(colT[p] || 0);
+    const target = round2(acTargets[p] || 0);
+    const diff = round2(entered - target);
+    const ok = Math.abs(diff) <= ACT_TOL;
+    document.querySelector(`[data-ent="${j}"]`).textContent = num(entered);
+    const dEl = document.querySelector(`[data-dif="${j}"]`);
+    dEl.textContent = num(diff);
+    dEl.className = 'num ' + (ok ? 'okc' : 'badc');
+    if (!ok) mismatches.push(`${p} ${diff > 0 ? '+' : ''}${num(diff)}`);
+  });
+
+  const gDiff = round2(grand - acTotalTarget);
+  const gOk = Math.abs(gDiff) <= ACT_TOL;
+  document.getElementById('ac-grand').textContent = num(grand);
+  const dt = document.getElementById('ac-diff');
+  dt.textContent = num(gDiff);
+  dt.className = 'num ' + (gOk ? 'okc' : 'badc');
+
+  const msg = document.getElementById('ac-msg');
+  if (mismatches.length || !gOk) {
+    msg.innerHTML = `<span class="err">Not matched yet. ${esc(mismatches.length ? 'Projects: ' + mismatches.join(', ') + '. ' : '')}${gOk ? '' : 'Month total difference: ' + num(gDiff) + ' h.'}</span>`;
+  } else {
+    msg.innerHTML = '<span class="good">All projects and the month total match the target. Ready to save.</span>';
+  }
+}
+
+function saveActualGrid() {
+  const grid = {};
+  document.querySelectorAll('#ac-table input[data-d]').forEach(i => {
+    const v = Number(i.value);
+    if (!v) return;
+    const ymd = acDays[i.dataset.d].ymd;
+    grid[ymd] = grid[ymd] || {};
+    grid[ymd][i.dataset.p] = v;
+  });
+  document.getElementById('ac-msg').textContent = 'Saving...';
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('ac-msg').innerHTML =
+      `<span class="good">Saved ${r.saved} entries (${num(r.total)} h).</span>`;
+    loadMe();
+  }).withFailureHandler(e => {
+    document.getElementById('ac-msg').innerHTML = '';
+    showPopup('Not saved', e.message);
+  }).saveActualGrid(MONTHS[myIdx], myYear, grid);
+}
+
+// ===== TEAM / APPROVALS =====
+function loadTeam() {
+  const m = document.getElementById('team-month').value;
+  const y = Number(document.getElementById('team-year').value);
+  google.script.run.withSuccessHandler(list => {
+    document.getElementById('team-table').innerHTML = list.length
+      ? '<thead><tr><th>Employee</th><th class="num">Allocated</th><th class="num">Leave</th><th class="num">Need review</th><th>Status</th><th></th></tr></thead><tbody>' +
+        list.map(e => `<tr><td>${esc(e.name)}</td><td class="num">${num(e.totalAllocated)}</td>
+          <td class="num">${num(e.totalLeave)}</td><td class="num">${e.flagged}</td>
+          <td><span class="status ${statusClass(e.status)}">${esc(e.status)}</span></td>
+          <td><button class="ghost" data-review="${esc(e.employeeId)}" data-name="${esc(e.name)}">Review</button></td></tr>`).join('') +
+        '</tbody>'
+      : '<tbody><tr><td>No employees on your team.</td></tr></tbody>';
+    document.querySelectorAll('[data-review]').forEach(b => b.onclick = () =>
+      openReview(b.dataset.review, b.dataset.name));
+  }).withFailureHandler(e => document.getElementById('team-table').innerHTML =
+      `<tbody><tr><td class="err">${esc(e.message)}</td></tr></tbody>`)
+    .getTeam(m, y);
+}
+
+function openReview(empId, name) {
+  reviewEmp = empId;
+  reviewName = name;
+  reviewMonth = document.getElementById('team-month').value;
+  reviewYear = Number(document.getElementById('team-year').value);
+  document.getElementById('review').style.display = 'block';
+  document.getElementById('review-title').textContent = `${name} Â· ${reviewMonth} ${reviewYear}`;
+  document.getElementById('review-msg').textContent = '';
+
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('review-table').innerHTML = reportHtml(r.rows, r.totalAllocated);
+  }).withFailureHandler(errTo('review-msg'))
+    .getEmployeeReportForReview(empId, reviewMonth, reviewYear);
+
+  google.script.run.withSuccessHandler(renderReviewBar)
+    .withFailureHandler(errTo('review-msg'))
+    .getMonthStatus(empId, reviewMonth, reviewYear);
+}
+
+function renderReviewBar(s) {
+  const labels = {
+    'Not submitted': 'Not submitted',
+    'Submitted': 'Submitted, waiting for your decision',
+    'Approved': 'Approved',
+    'Returned': 'Returned for correction'
+  };
+  let h = `<span class="status ${statusClass(s.status)}">${esc(labels[s.status] || s.status)}</span>`;
+  if (s.submittedAt) h += ` <span class="sub">Submitted ${esc(s.submittedAt)}</span>`;
+  if (s.status === 'Approved') h += ` <span class="sub">by ${esc(s.by)} Â· ${esc(s.at)}</span>`;
+  document.getElementById('review-status').innerHTML = h;
+  document.getElementById('review-approve').disabled = s.status !== 'Submitted';
+  document.getElementById('review-return').disabled = s.status !== 'Submitted';
+}
+
+function decide(action) {
+  const comment = document.getElementById('review-comment').value;
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('review-msg').innerHTML =
+      `<span class="good">Done: ${r.updated} entries set to ${esc(r.status)}.</span>`;
+    loadTeam();
+    openReview(reviewEmp, reviewName);
+  }).withFailureHandler(e => showPopup('Not done', e.message))
+    .approveTimesheet(reviewEmp, reviewMonth, reviewYear, action, comment);
+}
+
+// ===== ADMIN =====
+function loadAdmin() {
+  google.script.run.withSuccessHandler(list => {
+    emps = list.filter(e => e.active);
+    renderEmpList();
+  }).withFailureHandler(errTo('grid-msg')).getEmployeesForAdmin();
+
+  google.script.run.withSuccessHandler(d => {
+    allProjects = d.projects;
+  }).getProjectsAndEmployees();
+
+  document.getElementById('ex-year').value = NOW.getFullYear();
+  loadHolidays();
+  loadAdmins();
+  searchReports();
+}
+
+// ===== BULK EMPLOYEE UPLOAD =====
+function downloadEmployeeSample() {
+  const text = [
+    'EmployeeID,EmployeeName,Email,SupervisorEmail,Active',
+    'iDE0001,Example Staff One,staff.one@ideglobal.org,manager@ideglobal.org,TRUE',
+    'iDE0002,Example Staff Two,staff.two@ideglobal.org,manager@ideglobal.org,TRUE',
+    'iDE0003,Example Manager,manager@ideglobal.org,,TRUE'
+  ].join('\n');
+  const box = document.getElementById('emp-sample-box');
+  box.innerHTML = '<textarea id="emp-sample" style="width:100%;height:100px;font-family:monospace;font-size:12px;margin-top:8px"></textarea>';
+  const ta = document.getElementById('emp-sample');
+  ta.value = text;
+  ta.focus();
+  ta.select();
+  document.getElementById('emp-csv-msg').innerHTML =
+    '<span class="good">Sample shown above. Press Ctrl+C to copy it, paste into Notepad, and save as employees_sample.csv.</span>';
+}
+
+function parseCsv_(text) {
+  const rows = [];
+  let cur = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { cur.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      cur.push(field); rows.push(cur); cur = []; field = '';
+    } else field += c;
+  }
+  if (field !== '' || cur.length) { cur.push(field); rows.push(cur); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ''));
+}
+
+function uploadEmployeeCsv() {
+  const input = document.getElementById('emp-csv');
+  const msg = document.getElementById('emp-csv-msg');
+  if (!input.files || !input.files[0]) {
+    msg.innerHTML = '<span class="err">Choose a CSV file first.</span>';
+    return;
+  }
+  msg.innerHTML = 'Reading file...';
+  const reader = new FileReader();
+  reader.onerror = () => { msg.innerHTML = '<span class="err">Could not read the file.</span>'; };
+  reader.onload = () => {
+    const parsed = parseCsv_(String(reader.result).replace(/^\uFEFF/, ''));
+    if (parsed.length < 2) {
+      msg.innerHTML = '<span class="err">The file needs a header row and at least one employee.</span>';
+      return;
+    }
+    const head = parsed[0].map(h => h.trim());
+    const rows = parsed.slice(1).map(cells => {
+      const o = {};
+      head.forEach((h, i) => { o[h] = (cells[i] || '').trim(); });
+      return o;
+    });
+    msg.innerHTML = 'Checking ' + rows.length + ' employees...';
+    google.script.run.withSuccessHandler(r => {
+      msg.innerHTML = '<span class="good">Done. Added ' + r.added + ', updated ' + r.updated + '.</span>';
+      input.value = '';
+      loadAdmin();
+    }).withFailureHandler(e => {
+      msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+    }).importEmployees(rows);
+  };
+  reader.readAsText(input.files[0]);
+}
+
+// ===== REPORT ARCHIVE (admin) =====
+function searchReports() {
+  const y = document.getElementById('rp-year').value;
+  const m = document.getElementById('rp-month').value;
+  const q = document.getElementById('rp-q').value;
+  document.getElementById('rp-msg').textContent = 'Loading...';
+  google.script.run.withSuccessHandler(list => {
+    const t = document.getElementById('rp-table');
+    if (!list.length) {
+      t.innerHTML = '<tbody><tr><td>No submissions match this search.</td></tr></tbody>';
+      document.getElementById('rp-msg').textContent = '0 submissions.';
+      return;
+    }
+    const cnt = {};
+    list.forEach(r => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
+    document.getElementById('rp-msg').innerHTML = list.length + ' submission(s): ' +
+      Object.keys(cnt).map(s => `<span class="status ${statusClass(s)}">${esc(s)}: ${cnt[s]}</span>`).join(' ');
+
+    let html = '<thead><tr><th>Staff</th><th>Manager</th><th>Status</th><th>Date</th><th>PDF</th><th>Admin</th></tr></thead><tbody>';
+    let lastKey = '';
+    list.forEach(r => {
+      const key = r.year + ' ' + r.month;
+      if (key !== lastKey) {
+        html += `<tr class="grp"><td colspan="6">${esc(r.month)} ${r.year}</td></tr>`;
+        lastKey = key;
+      }
+      html += `<tr>
+        <td><b>${esc(r.name)}</b><br><small>${esc(r.employeeId)}</small></td>
+        <td><small>${esc(r.manager)}</small></td>
+        <td><span class="status ${statusClass(r.status)}">${esc(r.status)}</span></td>
+        <td><small>${esc(r.approvedOn || r.submittedOn || '-')}</small></td>
+        <td>${r.url
+          ? linkHtml_(r)
+          : `<button class="ghost" data-emp="${esc(r.employeeId)}" data-month="${esc(r.month)}" data-year="${r.year}" onclick="fetchRowPdf(this)">Get PDF</button>`}</td>
+        <td><button class="x" data-emp="${esc(r.employeeId)}" data-name="${esc(r.name)}" data-month="${esc(r.month)}" data-year="${r.year}" onclick="resetEntry(this)">Reset</button></td>
+      </tr>`;
+    });
+    html += '</tbody>';
+    t.innerHTML = html;
+  }).withFailureHandler(errTo('rp-msg')).findArchive(y, m, q);
+}
+
+function resetEntry(btn) {
+  const d = btn.dataset;
+  const reason = prompt(
+    'Reset ' + d.name + ' (' + d.emp + ') for ' + d.month + ' ' + d.year + '?\n\n' +
+    'The approval and the archived PDF are removed, and the staff member can edit and resubmit.\n\n' +
+    'Type the reason:');
+  if (reason === null) return;
+  if (!confirm('Confirm the reset? The approval record is removed and cannot be restored.')) return;
+  setBusy(btn, true);
+  google.script.run.withSuccessHandler(r => {
+    showPopup('Reset done', 'Reopened ' + r.hoursReopened + ' hour entries. Previous status: ' +
+      r.previousStatus + '. The staff member can now edit and resubmit.');
+    searchReports();
+  }).withFailureHandler(e => {
+    setBusy(btn, false);
+    showPopup('Reset not done', e.message);
+  }).resetTimesheet(d.emp, d.month, Number(d.year), reason);
+}
+
+function fetchRowPdf(btn) {
+  const cell = btn.parentElement;
+  setBusy(btn, true);
+  google.script.run.withSuccessHandler(r => {
+    cell.innerHTML = linkHtml_(r);
+  }).withFailureHandler(e => {
+    setBusy(btn, false);
+    showPopup('PDF not available', e.message);
+  }).getReportLink(btn.dataset.emp, btn.dataset.month, Number(btn.dataset.year));
+}
+
+function rebuildArchive() {
+  if (!confirm('Create PDFs for approved months that are missing from Drive? This can take a few minutes.')) return;
+  document.getElementById('rp-msg').textContent = 'Rebuilding archive...';
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('rp-msg').innerHTML =
+      `<span class="good">Stored ${r.made} report(s). Not approved: ${r.notApproved}. Failed: ${r.failed}.</span>`;
+    searchReports();
+  }).withFailureHandler(errTo('rp-msg')).rebuildReportArchive();
+}
+
+// ===== EMPLOYEE LIST AND ALLOCATION GRID =====
+function renderEmpList() {
+  const q = document.getElementById('emp-search').value.trim().toLowerCase();
+  const list = emps.filter(e => !q || [e.name, e.id, e.email].some(v => String(v).toLowerCase().includes(q)));
+  document.getElementById('emp-list').innerHTML = list.length
+    ? list.map(e => `<div class="emp ${selEmp && selEmp.id === e.id ? 'sel' : ''}" data-id="${esc(e.id)}">
+        <b>${esc(e.name)}</b><br><small>${esc(e.id)} Â· ${esc(e.email)}</small></div>`).join('')
+    : '<div class="emp"><small>No matches</small></div>';
+}
+
+function pickEmp(id) {
+  selEmp = emps.find(e => e.id === id);
+  renderEmpList();
+  document.getElementById('grid-title').textContent = selEmp.name;
+  document.getElementById('grid-empty').style.display = 'none';
+  document.getElementById('grid-area').style.display = 'block';
+  loadGrid();
+}
+
+function loadGrid() {
+  if (!selEmp) return;
+  const year = Number(document.getElementById('grid-year').value);
+  document.getElementById('grid-msg').textContent = 'Loading...';
+  google.script.run.withSuccessHandler(r => {
+    gridCols = r.columns;
+    gridData = r.grid;
+    document.getElementById('grid-msg').textContent = '';
+    renderGrid();
+    refreshProjectPicker();
+  }).withFailureHandler(errTo('grid-msg'))
+    .getAllocationGrid(selEmp.id, year);
+}
+
+function refreshProjectPicker() {
+  const available = allProjects.filter(p => !gridCols.includes(p));
+  fill(document.getElementById('add-project'), available.map(p => ({ v: p, t: p })));
+}
+
+function collectGrid() {
+  gridData = {};
+  MONTHS.forEach(m => (gridData[m] = {}));
+  document.querySelectorAll('#grid input').forEach(i => {
+    gridData[i.dataset.m][i.dataset.p] = i.value;
+  });
+}
+
+function addColumn() {
+  const p = document.getElementById('add-project').value;
+  if (!p || gridCols.includes(p)) return;
+  collectGrid();
+  gridCols.push(p);
+  renderGrid();
+  refreshProjectPicker();
+}
+
+function removeColumn(i) {
+  collectGrid();
+  const removed = gridCols.splice(i, 1)[0];
+  MONTHS.forEach(m => delete gridData[m][removed]);
+  renderGrid();
+  refreshProjectPicker();
+}
+
+function renderGrid() {
+  const t = document.getElementById('grid');
+  if (!gridCols.length) {
+    t.innerHTML = '<tbody><tr><td>No projects yet. Choose one above and click "+ Add project".</td></tr></tbody>';
+    return;
+  }
+  let h = '<thead><tr><th class="mc">Month</th>' +
+    gridCols.map((p, i) => `<th class="pc"><div class="pname">${esc(p)} <button class="x" data-rm="${i}" title="Remove project">Ã—</button></div></th>`).join('') +
+    '<th class="tc">Total</th></tr></thead><tbody>';
+  MONTHS.forEach(m => {
+    h += `<tr><td class="mc">${m}</td>` + gridCols.map(p => {
+      const v = gridData[m] && gridData[m][p] != null ? gridData[m][p] : '';
+      return `<td class="pc"><input type="number" min="0" max="744" step="0.25" data-m="${esc(m)}" data-p="${esc(p)}" value="${esc(v)}"></td>`;
+    }).join('') + `<td class="tc" data-rowtotal="${m}">0.00</td></tr>`;
+  });
+  h += '</tbody><tfoot><tr><th class="mc">Total</th>' +
+    gridCols.map(p => `<td class="pc" data-coltotal="${esc(p)}">0.00</td>`).join('') +
+    '<td class="tc" id="grand">0.00</td></tr></tfoot>';
+  t.className = 'grid-tbl';
+  t.innerHTML = h;
+  recalc();
+}
+
+function recalc() {
+  const rowT = {}, colT = {};
+  let grand = 0;
+  document.querySelectorAll('#grid input').forEach(i => {
+    const v = Number(i.value) || 0;
+    rowT[i.dataset.m] = (rowT[i.dataset.m] || 0) + v;
+    colT[i.dataset.p] = (colT[i.dataset.p] || 0) + v;
+    grand += v;
+  });
+  MONTHS.forEach(m => {
+    const el = document.querySelector(`[data-rowtotal="${m}"]`);
+    if (el) el.textContent = num(rowT[m] || 0);
+  });
+  document.querySelectorAll('[data-coltotal]').forEach(el => {
+    el.textContent = num(colT[el.dataset.coltotal] || 0);
+  });
+  const g = document.getElementById('grand');
+  if (g) g.textContent = num(grand);
+}
+
+function saveGrid() {
+  collectGrid();
+  const year = Number(document.getElementById('grid-year').value);
+  document.getElementById('grid-msg').textContent = 'Saving...';
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('grid-msg').innerHTML =
+      `<span class="good">Saved ${r.saved} allocation entries for ${year}.</span>`;
+  }).withFailureHandler(errTo('grid-msg'))
+    .saveAllocationGrid(selEmp.id, year, gridCols, gridData);
+}
+
+// ===== HOLIDAYS =====
+function loadHolidays() {
+  const y = Number(document.getElementById('hol-year').value);
+  google.script.run.withSuccessHandler(list => {
+    document.getElementById('hol-table').innerHTML = list.length
+      ? '<thead><tr><th>Date</th><th>Name</th><th>Type</th><th class="num">Hours</th><th></th></tr></thead><tbody>' +
+        list.map(h => `<tr><td>${esc(h.date)}</td><td>${esc(h.name)}</td><td>${esc(h.type)}</td>
+          <td class="num">${num(h.hours, 2)}</td>
+          <td><button class="x" data-hdel="${esc(h.date)}">Delete</button></td></tr>`).join('') +
+        '</tbody>'
+      : '<tbody><tr><td>No holidays set for this year.</td></tr></tbody>';
+    document.querySelectorAll('[data-hdel]').forEach(b => b.onclick = () => removeHoliday(b.dataset.hdel));
+  }).withFailureHandler(errTo('hol-msg')).getHolidays(y);
+}
+
+function addHolidayEntry() {
+  const msg = document.getElementById('hol-msg');
+  const date = document.getElementById('hol-date').value;
+  const name = document.getElementById('hol-name').value;
+  const type = document.getElementById('hol-type').value;
+  const hours = Number(document.getElementById('hol-hours').value) || 8;
+  if (!date) { msg.innerHTML = '<span class="err">Pick a date.</span>'; return; }
+  google.script.run.withSuccessHandler(() => {
+    msg.innerHTML = '<span class="good">Holiday added.</span>';
+    document.getElementById('hol-name').value = '';
+    loadHolidays();
+  }).withFailureHandler(e => showPopup('Holiday not saved', e.message))
+    .addHoliday(date, name, type, hours);
+}
+
+function removeHoliday(dateStr) {
+  if (!confirm(`Delete the holiday on ${dateStr}?`)) return;
+  google.script.run.withSuccessHandler(() => loadHolidays())
+    .withFailureHandler(e => showPopup('Could not delete', e.message))
+    .deleteHoliday(dateStr);
+}
+
+// ===== ADMINS =====
+function loadAdmins() {
+  google.script.run.withSuccessHandler(list => {
+    document.getElementById('adm-list').innerHTML = list.length
+      ? '<table><tbody>' + list.map(e =>
+          `<tr><td>${esc(e)}${ME && ME.email === e ? ' <small>(you)</small>' : ''}</td>
+           <td class="num"><button class="x" data-adel="${esc(e)}">Remove</button></td></tr>`
+        ).join('') + '</tbody></table>'
+      : '<div class="sub">No admins set.</div>';
+    document.querySelectorAll('[data-adel]').forEach(b => b.onclick = () => removeAdminEntry(b.dataset.adel));
+  }).withFailureHandler(errTo('adm-msg')).getAdmins();
+}
+
+function addAdminEntry() {
+  const email = document.getElementById('adm-email').value;
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('adm-email').value = '';
+    document.getElementById('adm-msg').innerHTML = `<span class="good">Added ${esc(r.added)} as admin.</span>`;
+    loadAdmins();
+  }).withFailureHandler(e => showPopup('Could not add admin', e.message)).addAdmin(email);
+}
+
+function removeAdminEntry(email) {
+  if (!confirm(`Remove admin access for ${email}?`)) return;
+  google.script.run.withSuccessHandler(() => {
+    document.getElementById('adm-msg').innerHTML = `<span class="good">Removed ${esc(email)}.</span>`;
+    loadAdmins();
+  }).withFailureHandler(e => showPopup('Could not remove admin', e.message)).removeAdmin(email);
+}
+
+// ===== BULK ALLOCATION CSV =====
+function uploadCsv() {
+  const file = document.getElementById('csv').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const lines = reader.result.split(/\r?\n/).filter(Boolean);
+    const head = lines.shift().split(',').map(h => h.trim());
+    const rows = lines.map(l => {
+      const cells = l.split(',').map(c => c.trim());
+      const o = {}; head.forEach((h, i) => o[h] = cells[i]); return o;
+    });
+    google.script.run.withSuccessHandler(r => {
+      document.getElementById('csv-msg').innerHTML = r.errors.length
+        ? `<span class="err">${r.errors.map(esc).join('<br>')}</span>`
+        : `<span class="good">Imported ${r.imported} rows.</span>`;
+    }).withFailureHandler(errTo('csv-msg')).importAllocationsCsv(rows);
+  };
+  reader.readAsText(file);
+}
+
+// ===== EXPORT =====
+function runExport() {
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('ops-msg').innerHTML =
+      `<span class="good">Exported ${r.employees} approved employees to ${esc(r.tab)}.</span> <a href="${esc(r.url)}" target="_blank">Open</a>`;
+  }).withFailureHandler(errTo('ops-msg'))
+    .exportApproved(document.getElementById('ex-month').value, Number(document.getElementById('ex-year').value));
+}
+loadSignature();
+init();
+init();
+</script>
+</body>
+</html>
